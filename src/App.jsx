@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css'
 import { Button } from './components/button/Button'
 import { Input } from './components/input/Input'
 import { Select } from './components/input/Select'
+import axios from 'axios';
+import { maskCep } from './util/cep';
 
 function App() {
   const inputRef = useRef(null);
@@ -10,14 +12,45 @@ function App() {
 
 
   const handleChange = (e) => {
-    console.log(e.target.id, e.target.value);
-    setFormData({ ...formData, [e.target.id]: e.target.value })
+    const { id, value } = e.target;
+    //console.log(id, value);
+
+    if (id === 'cep') {
+      setFormData({ ...formData, cep: maskCep(value) })
+    } else {
+      setFormData({ ...formData, [id]: value })
+
+    }
   }
 
   const enviar = e => {
     e.preventDefault();
     console.log('Form:', formData);
   }
+
+  const fetchCep = async (cep) => {
+    try {
+      const response = await axios.get(`https://brasilapi.com.br/api/cep/v2/${cep}`)
+
+      const data = response.data;
+      console.log('cep', data);
+
+      setFormData({
+        ...formData,
+        endereco: data.street,
+        bairro: data.neighborhood
+      })
+    } catch (error) {
+      console.log('error', error);
+    }
+  }
+
+  useEffect(() => {
+    // '?' O interrogação antes de uma propriedade ou função ser chamada, faz um check se existe, acessa a propriedade if (formData.cep && formData.cep.length === 8) {
+    if (formData.cep?.length === 10) {
+      fetchCep(maskCep(formData.cep));
+    }
+  }, [formData.cep])
 
   return (
     <>
@@ -66,6 +99,7 @@ function App() {
             label='CEP'
             id='cep'
             type='text'
+            value={formData.cep}
             handleChange={handleChange}
           />
 
@@ -73,6 +107,7 @@ function App() {
             inputSize={8}
             label='Endereço'
             id='endereco'
+            value={formData.endereco}
             handleChange={handleChange}
           />
 
@@ -95,30 +130,31 @@ function App() {
             inputSize={4}
             label='Bairro'
             id='bairro'
+            value={formData.bairro}
             handleChange={handleChange}
           />
 
           <Select
             label='Estado'
             id='estado'
+            value={formData.estado}
             handleChange={handleChange}
           />
 
           <Select
             label='Cidade'
             id='cidade'
+            value={formData.cidade}
             handleChange={handleChange}
           />
 
           <Button type='submit' label='Salvar' />
           <Button type='reset' variant='light' label='Limpar' onClick={() => setFormData({})} />
 
-          <div className='mt-10' style={{color: 'white', textAlign: 'left'}}>
+          <div className='mt-4' style={{ color: 'antiquewhite', textAlign: 'left' }}>
             <h3>Dados do JSON:</h3>
             <pre>{JSON.stringify(formData, null, 2)}</pre>
-
           </div>
-
         </form>
       </main>
     </>
